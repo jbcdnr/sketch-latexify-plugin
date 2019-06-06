@@ -1,0 +1,27 @@
+\documentclass{article}
+\usepackage[left=0px,right=0px,top=0px,bottom=0px,paperwidth={{{width}}}px, paperheight={{{height}}}px,noheadfoot, nomarginpar,showframe]{geometry}
+\usepackage{xcolor}
+
+% add a transparent boundary box to avoid cropping when importing in Sketch
+\colorlet{showframe}{black!0}
+\makeatletter
+\let\org@Gm@pageframes\Gm@pageframes
+\renewcommand*{\Gm@pageframes}{%
+  \begingroup
+    \color{showframe}%
+    \org@Gm@pageframes
+  \endgroup
+}
+\makeatother
+
+{{{preamble}}}
+
+\begin{document}
+\thispagestyle{empty}
+
+% enforce width of the page for wrapping text
+\noindent\begin{minipage}{ {{{width}}}px }
+{{{document}}}
+\end{minipage}
+
+\end{document}

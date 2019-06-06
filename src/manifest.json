@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/BohemianCoding/SketchAPI/develop/docs/sketch-plugin-manifest-schema.json",
+  "icon": "icon.png",
+  "commands": [{
+    "name": "LaTeXify / deTeXify",
+    "identifier": "latexify.run",
+    "script": "./latexify.js",
+    "shortcut": "ctrl shift l"
+  }],
+  "menu": {
+    "title": "LaTeXify",
+    "items": [
+      "latexify.run"
+    ]
+  }
+}
