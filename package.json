@@ -1,6 +1,6 @@
 {
   "name": "latexify",
-  "description": "",
+  "description": "LaTeXify your TextField and back.",
   "version": "0.1.0",
   "engines": {
     "sketch": ">=49.0"
@@ -30,5 +30,9 @@
     "@skpm/os": "^0.1.1",
     "@skpm/process": "^0.1.1",
     "mustache": "^3.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jbcdnr/sketch-latexify-plugin.git"
   }
 }
