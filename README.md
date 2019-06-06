@@ -12,6 +12,15 @@ Compile LaTeX text boxes inside Sketch. Work in progress...
 
 _This plugin was created using `skpm`. For a detailed explanation on how things work, checkout the [skpm Readme](https://github.com/skpm/skpm/blob/master/README.md)._
 
+## Work in progress
+
+- [ ] Adapt font size,
+- [ ] add setting to provide LaTeX preamble path,
+- [ ] choose highlight color inside Sketch,
+- [ ] improve compilation error handling,
+- [ ] lock LaTeX layer at creation,
+- [ ] BUG: too long text creates multiple pages PDF and import fails.
+
 ### Usage
 
 Install the dependencies
