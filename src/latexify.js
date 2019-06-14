@@ -124,6 +124,9 @@ export default function(context) {
 
       // delete layer
       deleteLayer(layer);
+
+      // select new layer
+      doc.selectedLayers = [newLayer];
     };
 
     sketch.UI.message("Compiling LaTeX...");
@@ -167,5 +170,8 @@ export default function(context) {
     deleteLayer(layer);
 
     sketch.UI.message("Layer deTeXified.");
+
+    // select new layer
+    doc.selectedLayers = [textLayer];
   }
 }
