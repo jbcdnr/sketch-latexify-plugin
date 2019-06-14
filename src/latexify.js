@@ -8,42 +8,72 @@ import Settings from "sketch/settings";
 
 // documentation: https://developer.sketchapp.com/reference/api/
 
-const compileLatex = (document, width, height, templateFileName, preamble) => {
-  // TODO not hard coded
-  const texTemplateFile =
-    "/Users/jb/Documents/PhD/latexit/sketch-assets/template.tex";
+const execPromise = command =>
+  new Promise((resolve, reject) => {
+    child_process.exec(command, (error, stdout, stderr) => {
+      console.log(`callback ${command} ${error} ${stdout} ${stderr}`);
+      if (error) {
+        console.log(`Error running command "${command}"`);
+        reject(error, stdout, stderr);
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
 
-  // TODO async
+const compileLatex = (
+  texTemplateFile,
+  document,
+  width,
+  height,
+  fontSize,
+  preamble
+) => {
+  const tmpDirectory = os.tmpdir();
+  const latexFile = `${tmpDirectory}/content.tex`;
+
   const latexTemplate = fs.readFileSync(texTemplateFile, "utf8");
 
-  const view = { width, height, document, preamble };
+  const view = {
+    width,
+    height,
+    document,
+    preamble,
+    fontSize,
+    skipFontSize: Math.round(fontSize * 1.2)
+  };
   const latexContent = Mustache.render(latexTemplate, view);
 
-  const tmpDirectory = os.tmpdir();
-
-  const latexFile = `${tmpDirectory}/content.tex`;
   // write tex file to directory
   fs.writeFileSync(latexFile, latexContent);
 
-  // TODO error handling
-  // create pdf
-  child_process.execSync(
-    `pdflatex -output-directory ${tmpDirectory} ${latexFile}`
-  );
+  // compile latex file
+  const promiseSVGContent = execPromise(
+    `pdflatex -halt-on-error -output-directory ${tmpDirectory} ${latexFile}`
+  )
+    // transform to SVG
+    .then(() =>
+      execPromise(
+        `pdf2svg ${tmpDirectory}/content.pdf ${tmpDirectory}/content.svg`
+      )
+    )
+    // read the svg content
+    .then(() => fs.readFileSync(`${tmpDirectory}/content.svg`, "utf8"));
 
-  // transform pdf into svg
-  child_process.execSync(
-    `pdf2svg ${tmpDirectory}/content.pdf ${tmpDirectory}/content.svg`
-  );
-
-  // read svg file
-  const svgContent = fs.readFileSync(`${tmpDirectory}/content.svg`, "utf8");
-
-  return svgContent;
+  return promiseSVGContent;
 };
 
 const deleteLayer = layer => {
   layer.parent.layers = layer.parent.layers.filter(l => l.id !== layer.id);
+};
+
+const getTemplateFileName = () => {
+  const resourcePath = String(
+    context.plugin.urlForResourceNamed("template.tex")
+  );
+  return resourcePath.startsWith("file://")
+    ? resourcePath.slice(7)
+    : resourcePath;
 };
 
 export default function(context) {
@@ -66,40 +96,46 @@ export default function(context) {
   if (layer.type === "Text") {
     const {
       text,
-      frame: { x, y, width, height }
+      frame: { x, y, width, height },
+      style: { fontSize }
     } = layer;
 
-    const templateFile = String(
-      context.plugin.urlForResourceNamed("template.tex")
-    );
+    const updatePageWithSVG = svgContent => {
+      // create layer
+      const group = sketch.createLayerFromData(svgContent, "svg");
+
+      const newLayer = new sketch.Group({
+        parent: layer.parent,
+        layers: group.layers,
+        name: layer.name,
+        locked: true
+      }).adjustToFit();
+
+      newLayer.frame.x = x;
+      newLayer.frame.y = y;
+
+      // Save parameters for text reconstruction if needed
+      Settings.setLayerSettingForKey(newLayer, "latex-content", text);
+      Settings.setLayerSettingForKey(newLayer, "latex-font-size", fontSize);
+      Settings.setLayerSettingForKey(newLayer, "latex-x", x);
+      Settings.setLayerSettingForKey(newLayer, "latex-y", y);
+      Settings.setLayerSettingForKey(newLayer, "latex-width", width);
+      Settings.setLayerSettingForKey(newLayer, "latex-height", height);
+
+      // delete layer
+      deleteLayer(layer);
+    };
 
     sketch.UI.message("Compiling LaTeX...");
-    const svgContent = compileLatex(text, width, height, templateFile, null);
 
-    // create layer
-    const group = sketch.createLayerFromData(svgContent, "svg");
+    const templateFile = getTemplateFileName();
 
-    const newLayer = new sketch.Group({
-      parent: layer.parent,
-      layers: group.layers,
-      name: layer.name
-    }).adjustToFit();
-
-    newLayer.frame.x = x;
-    newLayer.frame.y = y;
-
-    // Save parameters for text reconstruction if needed
-    Settings.setLayerSettingForKey(newLayer, "latex-content", text);
-    Settings.setLayerSettingForKey(newLayer, "latex-font-size", 10); // TODO
-    Settings.setLayerSettingForKey(newLayer, "latex-x", x);
-    Settings.setLayerSettingForKey(newLayer, "latex-y", y);
-    Settings.setLayerSettingForKey(newLayer, "latex-width", width);
-    Settings.setLayerSettingForKey(newLayer, "latex-height", height);
-
-    // delete layer
-    deleteLayer(layer);
-
-    sketch.UI.message("LaTeXify done.");
+    compileLatex(templateFile, text, width, height, fontSize, null)
+      .then(updatePageWithSVG)
+      .then(() => sketch.UI.message("LaTeXify done."))
+      .catch(err => {
+        sketch.UI.message("An arror occured while compiling LaTeX.");
+      });
   }
 
   // if a SVG group, try to get original text and replace with TextField
@@ -111,19 +147,22 @@ export default function(context) {
       return;
     }
 
-    const x = Settings.layerSettingForKey(layer, "latex-x", x);
-    const y = Settings.layerSettingForKey(layer, "latex-y", y);
-    const width = Settings.layerSettingForKey(layer, "latex-width", width);
-    const height = Settings.layerSettingForKey(layer, "latex-height", height);
+    const x = Settings.layerSettingForKey(layer, "latex-x");
+    const y = Settings.layerSettingForKey(layer, "latex-y");
+    const width = Settings.layerSettingForKey(layer, "latex-width");
+    const height = Settings.layerSettingForKey(layer, "latex-height");
+    const fontSize = Settings.layerSettingForKey(layer, "latex-font-size");
 
     // replace the layer by a text field containing the latex-content
-    new sketch.Text({
+    const textLayer = new sketch.Text({
       parent: layer.parent,
       name: layer.name,
       text,
       frame: new sketch.Rectangle(x, y, width, height),
       fixedWidth: true
     });
+
+    textLayer.style.fontSize = fontSize;
 
     deleteLayer(layer);
 
