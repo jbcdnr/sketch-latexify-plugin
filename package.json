@@ -10,8 +10,7 @@
     "manifest": "src/manifest.json",
     "main": "latexify.sketchplugin",
     "assets": [
-      "sketch-assets/icons.sketch",
-      "sketch-assets/template.tex"
+      "assets/template.tex"
     ]
   },
   "scripts": {
