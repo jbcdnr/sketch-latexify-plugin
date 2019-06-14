@@ -14,11 +14,8 @@ _This plugin was created using `skpm`. For a detailed explanation on how things 
 
 ## Work in progress
 
-- [ ] Adapt font size,
 - [ ] add setting to provide LaTeX preamble path,
 - [ ] choose highlight color inside Sketch,
-- [ ] improve compilation error handling,
-- [ ] lock LaTeX layer at creation,
 - [ ] BUG: too long text creates multiple pages PDF and import fails.
 
 ### Usage
